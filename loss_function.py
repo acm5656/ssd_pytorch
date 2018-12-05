@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import utils
+import Config
 def jaccard(box_a, box_b):
     """Compute the jaccard overlap of two sets of boxes.  The jaccard overlap
     is simply the intersection over union of two boxes.  Here we operate on
@@ -81,6 +82,10 @@ class LossFun(nn.Module):
         loc_data = torch.cat([o.view(o.size(0),-1,4) for o in loc_data] ,1)
         conf_data = torch.cat([o.view(o.size(0),-1,21) for o in conf_data],1)
         priors_boxes = torch.cat([o.view(-1,4) for o in priors_boxes],0)
+        if Config.use_cuda:
+            loc_data = loc_data.cuda()
+            conf_data = conf_data.cuda()
+            priors_boxes = priors_boxes.cuda()
         # batch_size
         batch_num = loc_data.size(0)
         # default_box数量
@@ -91,9 +96,15 @@ class LossFun(nn.Module):
         # 存储每一个default_box预测的种类
         target_conf = torch.LongTensor(batch_num,box_num)
         target_conf.requires_grad_(requires_grad=False)
+        if Config.use_cuda:
+            target_loc = target_loc.cuda()
+            target_conf = target_conf.cuda()
         for batch_id in range(batch_num):
             target_truths = targets[batch_id][:,:-1].data
             target_labels = targets[batch_id][:,-1].data
+            if Config.use_cuda:
+                target_truths = target_truths.cuda()
+                target_labels = target_labels.cuda()
             utils.match(0.5,target_truths,priors_boxes,target_labels,target_loc,target_conf,batch_id)
         pos = target_conf > 0
         pos_idx = pos.unsqueeze(pos.dim()).expand_as(loc_data)

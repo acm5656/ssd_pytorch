@@ -19,16 +19,22 @@ def default_prior_box():
             for ar in Config.aspect_ratios[k]:
                 mean += [cx, cy, s_k * sqrt(ar), s_k/sqrt(ar)]
                 mean += [cx, cy, s_k / sqrt(ar), s_k * sqrt(ar)]
-        mean = torch.Tensor(mean).view( Config.feature_map[k],Config.feature_map[k],-1).contiguous()
+        if Config.use_cuda:
+            mean = torch.Tensor(mean).cuda().view(Config.feature_map[k], Config.feature_map[k], -1).contiguous()
+        else:
+            mean = torch.Tensor(mean).view( Config.feature_map[k],Config.feature_map[k],-1).contiguous()
         mean.clamp_(max=1, min=0)
         mean_layer.append(mean)
 
     return mean_layer
 
 def change_prior_box(box):
-    return torch.cat((box[:, :2] - box[:, 2:]/2,     # xmin, ymin
-                     box[:, :2] + box[:, 2:]/2), 1)  # xmax, ymax
-
+    if Config.use_cuda:
+        return torch.cat((box[:, :2] - box[:, 2:]/2,     # xmin, ymin
+                         box[:, :2] + box[:, 2:]/2), 1).cuda()  # xmax, ymax
+    else:
+        return torch.cat((box[:, :2] - box[:, 2:]/2,     # xmin, ymin
+                         box[:, :2] + box[:, 2:]/2), 1)
 # 计算两个box的交集
 def insersect(box1,box2):
     label_num = box1.size(0)
@@ -87,6 +93,7 @@ def match(threshold,target_truth,prior_box,target_lable,target_loc,target_conf,b
         best_label_idx[best_prior_idx[j]] = j
     match_boxes = target_truth[best_label_idx]
     conf = target_lable[best_label_idx]+1
+    test1,test2 = best_label_overlap.sort(0,descending=True)
     conf[best_label_overlap<threshold] = 0
     loc = encode(match_boxes,prior_box,[0.1,0.2])
     target_loc[batch_id] = loc
