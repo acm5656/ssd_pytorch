@@ -62,7 +62,7 @@ def train():
                                   pin_memory=True)
 
     net = ssd_net_vgg.SSD()
-    vgg_weights = torch.load('./vgg16_reducedfc.pth')
+    vgg_weights = torch.load('./weights/vgg16_reducedfc.pth')
 
     net.apply(weights_init)
     net.vgg.load_state_dict(vgg_weights)
