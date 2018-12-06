@@ -5,7 +5,7 @@
 运行环境：  
 >1.python 3.6  
 >2.pytorch 0.4.1  
->>3.python-opencv  
+>3.python-opencv  
   
 ## 说明  
 预训练的权重文件[vgg_16](https://pan.baidu.com/s/1t_kd5YfdFHlzIiLWlYNjIQ ) 提取码：rdbn  
