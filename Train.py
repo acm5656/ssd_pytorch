@@ -7,7 +7,6 @@ if not Config.use_cuda:
     print("WARNING: It looks like you have a CUDA device, but aren't " +
           "using CUDA.\nRun with --cuda for optimal training speed.")
     torch.set_default_tensor_type('torch.FloatTensor')
-import ssd_net
 
 import torch.nn as nn
 import cv2
@@ -67,8 +66,6 @@ def train():
 
     net.apply(weights_init)
     net.vgg.load_state_dict(vgg_weights)
-    for k,v in net.state_dict().items():
-        print(k,v[0])
     # net.apply(weights_init)
     if Config.use_cuda:
         net = torch.nn.DataParallel(net)
@@ -103,8 +100,6 @@ def train():
             if iter % 10000 == 0 and iter!=0:
                 torch.save(net.state_dict(), 'weights/ssd300_VOC_' +
                            repr(iter) + '.pth')
-            if iter >= Config.max_iter:
-                break
         if iter >= Config.max_iter:
             break
     torch.save(net.state_dict(), 'weights/ssd_voc_120000.pth')
