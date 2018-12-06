@@ -27,6 +27,15 @@ def default_prior_box():
         mean_layer.append(mean)
 
     return mean_layer
+def encode(match_boxes,prior_box,variances):
+    g_cxcy = (match_boxes[:, :2] + match_boxes[:, 2:])/2 - prior_box[:, :2]
+    # encode variance
+    g_cxcy /= (variances[0] * prior_box[:, 2:])
+    # match wh / prior wh
+    g_wh = (match_boxes[:, 2:] - match_boxes[:, :2]) / prior_box[:, 2:]
+    g_wh = torch.log(g_wh) / variances[1]
+    # return target for smooth_l1_loss
+    return torch.cat([g_cxcy, g_wh], 1)  # [num_priors,4]
 
 def change_prior_box(box):
     if Config.use_cuda:
@@ -50,54 +59,63 @@ def insersect(box1,box2):
     inter = torch.clamp((max_xy-min_xy),min=0)
     return inter[:,:,0]*inter[:,:,1]
 
-# 计算jaccard
-def jaccard(box1,box2):
-    inter = insersect(box1,box2)
-    area_1 = (
-        (box1[:,2]-box1[:,0])
-        *
-        (box1[:,3]-box1[:,1])
-    ).unsqueeze(1).expand_as(inter)
-    area_2 = (
-        (box2[:,2]-box2[:,0])
-        *
-        (box2[:,3]-box2[:,1])
-    ).unsqueeze(0).expand_as(inter)
-    union = area_1+area_2 - inter
-    return inter/union
+def jaccard(box_a, box_b):
+    """计算jaccard比
+    公式:
+        A ∩ B / A ∪ B = A ∩ B / (area(A) + area(B) - A ∩ B)
+    """
+    inter = insersect(box_a, box_b)
+    area_a = ((box_a[:, 2]-box_a[:, 0]) *
+              (box_a[:, 3]-box_a[:, 1])).unsqueeze(1).expand_as(inter)  # [A,B]
+    area_b = ((box_b[:, 2]-box_b[:, 0]) *
+              (box_b[:, 3]-box_b[:, 1])).unsqueeze(0).expand_as(inter)  # [A,B]
+    union = area_a + area_b - inter
+    return inter / union  # [A,B]
+def point_form(boxes):
 
-def encode(match_boxes,prior_box,variances):
-    g_cxcy = (match_boxes[:, :2] + match_boxes[:, 2:])/2 - prior_box[:, :2]
-    # encode variance
-    g_cxcy /= (variances[0] * prior_box[:, 2:])
-    # match wh / prior wh
-    g_wh = (match_boxes[:, 2:] - match_boxes[:, :2]) / prior_box[:, 2:]
-    g_wh = torch.log(g_wh) / variances[1]
-    # return target for smooth_l1_loss
-    return torch.cat([g_cxcy, g_wh], 1)  # [num_priors,4]
-
-# 计算每一个box对应的类别和与prior_box变换后的数值
-def match(threshold,target_truth,prior_box,target_lable,target_loc,target_conf,batch_id):
-    # [label_num,box_num]
-    overlaps = jaccard(target_truth,change_prior_box(prior_box))
-    # 每一个类别中最大的overlap [label_num,1]
-    best_prior_overlap,best_prior_idx = overlaps.max(1,keepdim = True)
-    # 每个default box中最优的label [1,box_number]
-    best_label_overlap,best_label_idx = overlaps.max(0,keepdim = True)
-    best_prior_overlap.squeeze_(1)
+    return torch.cat((boxes[:, :2] - boxes[:, 2:]/2,     # xmin, ymin
+                     boxes[:, :2] + boxes[:, 2:]/2), 1)  # xmax, ymax
+def match(threshold, truths, priors, variances, labels, loc_t, conf_t, idx):
+    """计算default box和实际位置的jaccard比，计算出每个box的最大jaccard比的种类和每个种类的最大jaccard比的box
+    Args:
+        threshold: (float) jaccard比的阈值.
+        truths: (tensor) 实际位置.
+        priors: (tensor) default box
+        variances: (tensor) 这个数据含义暂时不清楚，笔者测试过，如果不使用同样可以训练.
+        labels: (tensor) 一个图片实际包含的类别数.
+        loc_t: (tensor) 需要存储每个box不同类别中的最大jaccard比.
+        conf_t: (tensor) 存储每个box的最大jaccard比的类别.
+        idx: (int) 当前的批次
+    """
+    # 计算jaccard比
+    overlaps = jaccard(
+        truths,
+        # 转换priors，转换为x_min,y_min,x_max和y_max
+        point_form(priors)
+    )
+    # [1,num_objects] best prior for each ground truth
+    # 实际包含的类别对应box中jaccarb最大的box和对应的索引值，即每个类别最优box
+    best_prior_overlap, best_prior_idx = overlaps.max(1, keepdim=True)
+    # [1,num_priors] best ground truth for each prior
+    # 每一个box,在实际类别中最大的jaccard比的类别，即每个box最优类别
+    best_truth_overlap, best_truth_idx = overlaps.max(0, keepdim=True)
+    best_truth_idx.squeeze_(0)
+    best_truth_overlap.squeeze_(0)
     best_prior_idx.squeeze_(1)
-    best_label_overlap.squeeze_(0)
-    best_label_idx.squeeze_(0)
-    best_label_overlap.index_fill_(0,best_prior_idx,2)
+    best_prior_overlap.squeeze_(1)
+    # 将每个类别中的最大box设置为2，确保不影响后边操作
+    best_truth_overlap.index_fill_(0, best_prior_idx, 2)
+
+    # 计算每一个box的最优类别，和每个类别的最优loc
     for j in range(best_prior_idx.size(0)):
-        best_label_idx[best_prior_idx[j]] = j
-    match_boxes = target_truth[best_label_idx]
-    conf = target_lable[best_label_idx]+1
-    test1,test2 = best_label_overlap.sort(0,descending=True)
-    conf[best_label_overlap<threshold] = 0
-    loc = encode(match_boxes,prior_box,[0.1,0.2])
-    target_loc[batch_id] = loc
-    target_conf[batch_id] = conf
+        best_truth_idx[best_prior_idx[j]] = j
+    matches = truths[best_truth_idx]          # Shape: [num_priors,4]
+    conf = labels[best_truth_idx] + 1         # Shape: [num_priors]
+    conf[best_truth_overlap < threshold] = 0  # label as background
+    # 实现loc的转换，具体的转换公式参照论文中的loc的loss函数的计算公式
+    loc = encode(matches, priors, variances)
+    loc_t[idx] = loc    # [num_priors,4] encoded offsets to learn
+    conf_t[idx] = conf  # [num_priors] top class label for each prior
 
 
 def log_sum_exp(x):

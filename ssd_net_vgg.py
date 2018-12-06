@@ -1,50 +1,45 @@
 import torch
 import torch.nn as nn
 import l2norm
-base = {
-    '300': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'C', 512, 512, 512, 'M',
-            512, 512, 512],
-    '512': [],
-}
 class SSD(nn.Module):
     def __init__(self):
         super(SSD,self).__init__()
         self.vgg = []
         #vgg-16模型
-        self.vgg.append(nn.Conv2d(in_channels=3,out_channels=64,kernel_size=3,stride=1,padding=1))
+        self.vgg.append(nn.Conv2d(in_channels=3,out_channels=64,kernel_size=3,stride=1,padding=1))#conv1_1
         self.vgg.append(nn.ReLU(inplace=True))
-        self.vgg.append(nn.Conv2d(in_channels=64,out_channels=64,kernel_size=3,stride=1,padding=1))
+        self.vgg.append(nn.Conv2d(in_channels=64,out_channels=64,kernel_size=3,stride=1,padding=1))#conv1_2
         self.vgg.append(nn.ReLU(inplace=True))
-        self.vgg.append(nn.MaxPool2d(kernel_size=2,stride=2))
-        self.vgg.append(nn.Conv2d(in_channels=64,out_channels=128,kernel_size=3,stride=1,padding=1))
+        self.vgg.append(nn.MaxPool2d(kernel_size=2,stride=2))#maxpool1
+        self.vgg.append(nn.Conv2d(in_channels=64,out_channels=128,kernel_size=3,stride=1,padding=1))#conv2_1
         self.vgg.append(nn.ReLU(inplace=True))
-        self.vgg.append(nn.Conv2d(in_channels=128,out_channels=128,kernel_size=3,stride=1,padding=1))
+        self.vgg.append(nn.Conv2d(in_channels=128,out_channels=128,kernel_size=3,stride=1,padding=1))#conv2_2
         self.vgg.append(nn.ReLU(inplace=True))
-        self.vgg.append(nn.MaxPool2d(kernel_size=2,stride=2))
-        self.vgg.append(nn.Conv2d(in_channels=128,out_channels=256,kernel_size=3,stride=1,padding=1))
+        self.vgg.append(nn.MaxPool2d(kernel_size=2,stride=2))#maxpool2
+        self.vgg.append(nn.Conv2d(in_channels=128,out_channels=256,kernel_size=3,stride=1,padding=1))#conv3_1
         self.vgg.append(nn.ReLU(inplace=True))
-        self.vgg.append(nn.Conv2d(in_channels=256,out_channels=256,kernel_size=3,stride=1,padding=1))
+        self.vgg.append(nn.Conv2d(in_channels=256,out_channels=256,kernel_size=3,stride=1,padding=1))#conv3_2
         self.vgg.append(nn.ReLU(inplace=True))
-        self.vgg.append(nn.Conv2d(in_channels=256,out_channels=256,kernel_size=3,stride=1,padding=1))
+        self.vgg.append(nn.Conv2d(in_channels=256,out_channels=256,kernel_size=3,stride=1,padding=1))#conv3_3
         self.vgg.append(nn.ReLU(inplace=True))
-        self.vgg.append(nn.MaxPool2d(kernel_size=2,stride=2,ceil_mode=True))
-        self.vgg.append(nn.Conv2d(in_channels=256,out_channels=512,kernel_size=3,stride=1,padding=1))
+        self.vgg.append(nn.MaxPool2d(kernel_size=2,stride=2,ceil_mode=True))#maxpool3
+        self.vgg.append(nn.Conv2d(in_channels=256,out_channels=512,kernel_size=3,stride=1,padding=1))#conv4_1
         self.vgg.append(nn.ReLU(inplace=True))
-        self.vgg.append(nn.Conv2d(in_channels=512,out_channels=512,kernel_size=3,stride=1,padding=1))
+        self.vgg.append(nn.Conv2d(in_channels=512,out_channels=512,kernel_size=3,stride=1,padding=1))#conv4_2
         self.vgg.append(nn.ReLU(inplace=True))
-        self.vgg.append(nn.Conv2d(in_channels=512,out_channels=512,kernel_size=3,stride=1,padding=1))
+        self.vgg.append(nn.Conv2d(in_channels=512,out_channels=512,kernel_size=3,stride=1,padding=1))#conv4_3
         self.vgg.append(nn.ReLU(inplace=True))
-        self.vgg.append(nn.MaxPool2d(kernel_size=2,stride=2))
-        self.vgg.append(nn.Conv2d(in_channels=512,out_channels=512,kernel_size=3,stride=1,padding=1))
+        self.vgg.append(nn.MaxPool2d(kernel_size=2,stride=2))#maxpool4
+        self.vgg.append(nn.Conv2d(in_channels=512,out_channels=512,kernel_size=3,stride=1,padding=1))#conv5_1
         self.vgg.append(nn.ReLU(inplace=True))
-        self.vgg.append(nn.Conv2d(in_channels=512,out_channels=512,kernel_size=3,stride=1,padding=1))
+        self.vgg.append(nn.Conv2d(in_channels=512,out_channels=512,kernel_size=3,stride=1,padding=1))#conv5_2
         self.vgg.append(nn.ReLU(inplace=True))
-        self.vgg.append(nn.Conv2d(in_channels=512,out_channels=512,kernel_size=3,stride=1,padding=1))
+        self.vgg.append(nn.Conv2d(in_channels=512,out_channels=512,kernel_size=3,stride=1,padding=1))#conv5_3
         self.vgg.append(nn.ReLU(inplace=True))
-        self.vgg.append(nn.MaxPool2d(kernel_size=3,stride=1,padding=1))
-        self.vgg.append(nn.Conv2d(in_channels=512,out_channels=1024,kernel_size=3,padding=6,dilation=6))
+        self.vgg.append(nn.MaxPool2d(kernel_size=3,stride=1,padding=1))#maxpool5
+        self.vgg.append(nn.Conv2d(in_channels=512,out_channels=1024,kernel_size=3,padding=6,dilation=6))#conv6
         self.vgg.append(nn.ReLU(inplace=True))
-        self.vgg.append(nn.Conv2d(in_channels=1024,out_channels=1024,kernel_size=1))
+        self.vgg.append(nn.Conv2d(in_channels=1024,out_channels=1024,kernel_size=1))#conv7
         self.vgg.append(nn.ReLU(inplace=True))
         self.vgg = nn.ModuleList(self.vgg)
         self.conv8_1 = nn.Sequential(
