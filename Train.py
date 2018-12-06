@@ -1,6 +1,5 @@
 import torch
 import Config
-torch.manual_seed(1)
 if Config.use_cuda:
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
 if not Config.use_cuda:
@@ -58,7 +57,7 @@ def train():
                                                      Config.MEANS))
     data_loader = data.DataLoader(dataset, Config.batch_size,
                                   num_workers=Config.data_load_number_worker,
-                                  shuffle=False, collate_fn=detection_collate,
+                                  shuffle=True, collate_fn=detection_collate,
                                   pin_memory=True)
 
     net = ssd_net_vgg.SSD()
@@ -90,7 +89,7 @@ def train():
             loss = loss_l + loss_c
             loss.backward()
             optimizer.step()
-            if iter % 300 == 0 or before_epoch!=epoch:
+            if iter % 3 == 0 or before_epoch!=epoch:
                 print('epoch : ',epoch,' iter : ',iter,' step : ',step,' loss : ',loss.data[0])
                 before_epoch = epoch
             iter+=1

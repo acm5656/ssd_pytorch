@@ -75,13 +75,12 @@ def point_form(boxes):
 
     return torch.cat((boxes[:, :2] - boxes[:, 2:]/2,     # xmin, ymin
                      boxes[:, :2] + boxes[:, 2:]/2), 1)  # xmax, ymax
-def match(threshold, truths, priors, variances, labels, loc_t, conf_t, idx):
+def match(threshold, truths, priors, labels, loc_t, conf_t, idx):
     """计算default box和实际位置的jaccard比，计算出每个box的最大jaccard比的种类和每个种类的最大jaccard比的box
     Args:
         threshold: (float) jaccard比的阈值.
         truths: (tensor) 实际位置.
         priors: (tensor) default box
-        variances: (tensor) 这个数据含义暂时不清楚，笔者测试过，如果不使用同样可以训练.
         labels: (tensor) 一个图片实际包含的类别数.
         loc_t: (tensor) 需要存储每个box不同类别中的最大jaccard比.
         conf_t: (tensor) 存储每个box的最大jaccard比的类别.
@@ -113,7 +112,7 @@ def match(threshold, truths, priors, variances, labels, loc_t, conf_t, idx):
     conf = labels[best_truth_idx] + 1         # Shape: [num_priors]
     conf[best_truth_overlap < threshold] = 0  # label as background
     # 实现loc的转换，具体的转换公式参照论文中的loc的loss函数的计算公式
-    loc = encode(matches, priors, variances)
+    loc = encode(matches, priors,(0.1,0.2))
     loc_t[idx] = loc    # [num_priors,4] encoded offsets to learn
     conf_t[idx] = conf  # [num_priors] top class label for each prior
 
