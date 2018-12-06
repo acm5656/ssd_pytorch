@@ -14,6 +14,7 @@
 预训练的权重文件[vgg_16](https://pan.baidu.com/s/1t_kd5YfdFHlzIiLWlYNjIQ ) 提取码：rdbn  
 具体的配置文件请看Config.py文件  
 训练运行python3.6 Train.py  
+已经训练好的模型[ssd_300](https://pan.baidu.com/s/14UX4hi9l-vJhVaBFX-HXYQ)  
 测试运行python3.6 Test.py  
   
 ## 运行结果  
