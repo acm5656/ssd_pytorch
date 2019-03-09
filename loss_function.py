@@ -10,7 +10,7 @@ class LossFun(nn.Module):
     def forward(self, prediction,targets,priors_boxes):
         loc_data , conf_data = prediction
         loc_data = torch.cat([o.view(o.size(0),-1,4) for o in loc_data] ,1)
-        conf_data = torch.cat([o.view(o.size(0),-1,21) for o in conf_data],1)
+        conf_data = torch.cat([o.view(o.size(0),-1,Config.class_num) for o in conf_data],1)
         priors_boxes = torch.cat([o.view(-1,4) for o in priors_boxes],0)
         if Config.use_cuda:
             loc_data = loc_data.cuda()
@@ -46,7 +46,7 @@ class LossFun(nn.Module):
         # 将计算好的loc和预测进行smooth_li损失函数
         loss_loc = F.smooth_l1_loss(pre_loc_xij,tar_loc_xij,size_average=False)
 
-        batch_conf = conf_data.view(-1,21)
+        batch_conf = conf_data.view(-1,Config.class_num)
 
         # 参照论文中conf计算方式，求出ci
         loss_c = utils.log_sum_exp(batch_conf) - batch_conf.gather(1, target_conf.view(-1, 1))
@@ -67,7 +67,7 @@ class LossFun(nn.Module):
         pos_idx = pos.unsqueeze(2).expand_as(conf_data)
         neg_idx = neg.unsqueeze(2).expand_as(conf_data)
 
-        conf_p = conf_data[(pos_idx+neg_idx).gt(0)].view(-1, 21)
+        conf_p = conf_data[(pos_idx+neg_idx).gt(0)].view(-1, Config.class_num)
         targets_weighted = target_conf[(pos+neg).gt(0)]
         loss_c = F.cross_entropy(conf_p, targets_weighted, size_average=False)
 

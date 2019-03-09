@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import l2norm
+import Config as config
 class SSD(nn.Module):
     def __init__(self):
         super(SSD,self).__init__()
@@ -95,22 +96,22 @@ class SSD(nn.Module):
         )
         #特征层类别输出
         self.feature_map_conf_1 = nn.Sequential(
-            nn.Conv2d(in_channels=512,out_channels=4*21,kernel_size=3,stride=1,padding=1)
+            nn.Conv2d(in_channels=512,out_channels=4*config.class_num,kernel_size=3,stride=1,padding=1)
         )
         self.feature_map_conf_2 = nn.Sequential(
-            nn.Conv2d(in_channels=1024,out_channels=6*21,kernel_size=3,stride=1,padding=1)
+            nn.Conv2d(in_channels=1024,out_channels=6*config.class_num,kernel_size=3,stride=1,padding=1)
         )
         self.feature_map_conf_3 = nn.Sequential(
-            nn.Conv2d(in_channels=512,out_channels=6*21,kernel_size=3,stride=1,padding=1)
+            nn.Conv2d(in_channels=512,out_channels=6*config.class_num,kernel_size=3,stride=1,padding=1)
         )
         self.feature_map_conf_4 = nn.Sequential(
-            nn.Conv2d(in_channels=256,out_channels=6*21,kernel_size=3,stride=1,padding=1)
+            nn.Conv2d(in_channels=256,out_channels=6*config.class_num,kernel_size=3,stride=1,padding=1)
         )
         self.feature_map_conf_5 = nn.Sequential(
-            nn.Conv2d(in_channels=256,out_channels=4*21,kernel_size=3,stride=1,padding=1)
+            nn.Conv2d(in_channels=256,out_channels=4*config.class_num,kernel_size=3,stride=1,padding=1)
         )
         self.feature_map_conf_6 = nn.Sequential(
-            nn.Conv2d(in_channels=256,out_channels=4*21,kernel_size=3,stride=1,padding=1)
+            nn.Conv2d(in_channels=256,out_channels=4*config.class_num,kernel_size=3,stride=1,padding=1)
         )
 
 

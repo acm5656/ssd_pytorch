@@ -33,7 +33,7 @@ if torch.cuda.is_available():
     xx = xx.cuda()
 y = net(xx)
 softmax = nn.Softmax(dim=-1)
-detect = Detect(21, 0, 200, 0.01, 0.45)
+detect = Detect(config.class_num, 0, 200, 0.01, 0.45)
 priors = utils.default_prior_box()
 
 loc,conf = y
@@ -42,7 +42,7 @@ conf = torch.cat([o.view(o.size(0), -1) for o in conf], 1)
 
 detections = detect(
     loc.view(loc.size(0), -1, 4),
-    softmax(conf.view(conf.size(0), -1,21)),
+    softmax(conf.view(conf.size(0), -1,config.class_num)),
     torch.cat([o.view(-1, 4) for o in priors], 0)
 ).data
 
