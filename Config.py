@@ -16,4 +16,4 @@ dataset_root = VOC_ROOT
 use_cuda = True
 lr_steps = (80000, 100000, 120000)
 max_iter = 120000
-class_num = 6
+class_num = 21
